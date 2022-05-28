@@ -1,5 +1,6 @@
 const express = require('express');
 const fs = require('fs');
+const util = require('util')
 
 const { Server: HttpServer } = require('http');
 const { Server: IOServer } = require('socket.io');
@@ -7,6 +8,9 @@ const { Server: IOServer } = require('socket.io');
 const app = express()
 const httpServer = new HttpServer(app)
 const io = new IOServer(httpServer)
+
+const productsTestClass = require('./faker.js')
+const { normalize, schema } = require('normalizr')
 
 app.use(express.static('./public'));
 
@@ -23,35 +27,84 @@ const mongoClient = require("./container/mongo")
 // MENSAJES
 // const messagesApi = new sqlClient(config.sqlite3, "messages");
 // const messagesApi = new mongoClient(config.mongooseMessages,"messages");
-const messagesApi = new firebaseClient(config.firebase,"messages");
+const messagesApi = new firebaseClient(config.firebase, "messages");
 
 // PRODUCTOS
 // const productsApi = new sqlClient(config.mariaDB, "products");
 // const productsApi = new mongoClient(config.mongooseProducts,"products");
-const productsApi = new firebaseClient(config.firebase,"products");
+const productsApi = new firebaseClient(config.firebase, "products");
+const testApi = new productsTestClass();
 
-// sqlite
 
-// const messages = require('./api/messages');
-const messages = []
+// const messages = require('./api/messages.json');
+// const messages = []
 
-const lastMessage = async () => {
-    try {
-        if (messages.length == 0) {
-            messages.push(await messagesApi.readAll())
-        }
-        else {
-            await messagesApi.createMessagesTable()
-            await messagesApi.addElements(messages)
-        }
+// const lastMessage = async () => {
+//     try {
+//         if (messages.length == 0) {
+//             messages.push(await messagesApi.readAll())
+//         }
+//         else {
+//             await messagesApi.createMessagesTable()
+//             await messagesApi.addElements(messages)
+//         }
+//     }
+//     catch (error) {
+//         console.log(`ERROR: ${error}`);
+//     }
+// }
+// lastMessage()
+
+// entidad de autores
+const authorSchema = new schema.Entity("author", {}, { idAttribute: "email" });
+
+// entidad de comentarios
+const commentSchema = new schema.Entity(
+    "text",
+    { author: authorSchema },
+    {
+        idAttribute: "email",
     }
-    catch (error) {
-        console.log(`ERROR: ${error}`);
-    }
-}
-lastMessage()
+);
 
-// mariaDB
+// entidad de articulos
+const postSchema = new schema.Entity(
+    "posts",
+    {
+        messages: [commentSchema],
+    },
+    { idAttribute: "email" }
+);
+
+const messagesNew = [];
+
+io.on("connection", async (socket) => {
+    console.log("Usuario conectado");
+
+    //   cargamos por primera vez los msg
+    const messages = await messagesApi.readAll();
+    io.emit("messages", messages);
+    const normalizedData = normalize(
+        { id: "messages", messages: [messages] },
+        postSchema
+    );
+    function print(obj) {
+        console.log(util.inspect(obj, false, 12, true));
+    }
+
+    io.emit("messages2", normalizedData);
+    print(normalizedData);
+
+    // mandamos un nuevo mensaje
+
+    socket.on("new-message", async (message) => {
+        await messagesApi.insertMessage(message);
+        messagesNew.push(message);
+    });
+});
+
+async function readNormalized() { }
+
 
 // const products = require('./api/productos');
 const products = []
@@ -89,7 +142,11 @@ app.post("/productos", async function (req, res) {
 //Eliminar un producto
 app.delete("/productos/:id", async function (req, res) {
     const id = req.params.id;
-    res.json(await productosApi.deleteProduct(id));
+    res.json(await productsApi.deleteProduct(id));
+});
+
+app.get("/productos-test", async function (req, res) {
+    res.json(await testApi.generarProductos(5));
 });
 
 // io
@@ -98,23 +155,23 @@ app.delete("/productos/:id", async function (req, res) {
 io.on('connection', async (socket) => {
     console.log('Usuario conectado');
 
-   // productos
-   socket.emit('products', products);    
+    // productos
+    socket.emit('products', products);
 
-   socket.on('newProduct', product =>{
-       products[0].push(product);
-       io.sockets.emit('products', products)
-       productsApi.addElements(product)
-   })
-   //Envio de mensaje
-   socket.emit('messages', messages[0]);
+    socket.on('newProduct', product => {
+        products[0].push(product);
+        io.sockets.emit('products', products)
+        productsApi.addElements(product)
+    })
+    //Envio de mensaje
+    socket.emit('messages', messagesNew[0]);
 
-   socket.on('newMessage', data =>{
-       // messages.push({ socketid: socket.id , message: data });
-       messages[0].push(data);
-       io.sockets.emit('messages', messages[0]);
-       messagesApi.addElements(data);
-   });
+    socket.on('newMessage', data => {
+        // messages.push({ socketid: socket.id , message: data });
+        messages[0].push(data);
+        io.sockets.emit('messages', messages[0]);
+        messagesApi.addElements(data);
+    });
 });
 
 // uso de middlewares

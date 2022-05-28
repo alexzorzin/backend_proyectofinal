@@ -1,9 +1,9 @@
 {
   "name": "desafiosql",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,11 +12,23 @@
   "dependencies": {
     "express": "^4.18.1",
     "express-handlebars": "^6.0.5",
+    "faker": "^5.5.3",
     "firebase-admin": "^10.2.0",
     "knex": "^2.0.0",
     "mongoose": "^6.3.3",
     "mysql": "^2.18.1",
+    "normalizr": "^3.6.2",
     "socket.io": "^4.5.0",
     "sqlite3": "^5.0.8"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexzorzin/backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alexzorzin/backend/issues"
+  },
+  "homepage": "https://github.com/alexzorzin/backend#readme",
+  "description": ""
 }

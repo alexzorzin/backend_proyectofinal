@@ -10,6 +10,14 @@ class firebaseClient {
         this.query = this.db.collection(tabla);
     }
 
+    async createMessagesTable() {
+        console.log('table')
+    }
+
+    async createProductsTable() {
+        console.log('table')
+    }
+
 // LEER
     async readAll() {
         const querySnapshot = await this.query.get();

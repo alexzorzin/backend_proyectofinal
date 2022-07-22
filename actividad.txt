@@ -1,0 +1,68 @@
+Node profiling:
+
+-------bloqueante:-----------
+
+ [Summary]:
+   ticks  total  nonlib   name
+      4    0.0%   80.0%  JavaScript
+      0    0.0%    0.0%  C++
+      7    0.0%  140.0%  GC
+  16473  100.0%          Shared libraries
+      1    0.0%          Unaccounted
+
+---------no bloqueante:-----
+
+ [Summary]:
+   ticks  total  nonlib   name
+      0    0.0%    NaN%  JavaScript
+      0    0.0%    NaN%  C++
+      2    0.0%  Infinity%  GC
+  17373  100.0%          Shared libraries
+
+  -------artillery-------
+Para hacer el test de carga en artillery, emulando 50 conexiones concurrentes con 20 request por cada una, utilicé la siguiente linea de comandos:
+artillery quick --count 50 -n 20 "http://localhost:8080/info" > result_nobloq.txt y
+artillery quick --count 50 -n 20 "http://localhost:8080/info" > result_bloq.txt
+
+Los resultados están en los dos archivos.
+
+------autocannon------
+En autocannon, el resultado del reporte de 100 conexiones concurrentes en 20 segundos fue:
+
+Running 20s test @ http://localhost:8080/info
+100 connections
+
+
+┌─────────┬────────┬─────────┬─────────┬─────────┬────────────┬───────────┬─────────┐
+│ Stat    │ 2.5%   │ 50%     │ 97.5%   │ 99%     │ Avg        │ Stdev     │ Max 
+    │
+├─────────┼────────┼─────────┼─────────┼─────────┼────────────┼───────────┼─────────┤
+│ Latency │ 575 ms │ 1031 ms │ 3698 ms │ 3987 ms │ 1311.31 ms │ 663.49 ms │ 4362 ms │
+└─────────┴────────┴─────────┴─────────┴─────────┴────────────┴───────────┴─────────┘
+┌───────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
+│ Stat      │ 1%      │ 2.5%    │ 50%     │ 97.5%   │ Avg     │ Stdev   │ Min   
+  │
+├───────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ Req/Sec   │ 7       │ 7       │ 75      │ 127     │ 74.2    │ 33.22   │ 7     
+  │
+├───────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┼─────────┤
+│ Bytes/Sec │ 5.42 kB │ 5.42 kB │ 58.1 kB │ 98.5 kB │ 57.5 kB │ 25.7 kB │ 5.41 kB │
+└───────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┴─────────┘
+
+Req/Bytes counts sampled once per second.
+# of samples: 20
+
+2k requests in 20.19s, 1.15 MB read
+
+------node inspector------
+
+Primero, tenemos que ejecutar el comando "node --inspect src/main.js".
+Luego abrimos el navegador y en la barra de busqueda ponemos "chrome://inspect".
+Ahi vamos a la pestaña profiler y pulsamos start. En el apartado cpu profiler se guardaran los logs.
+Ejecutaremos el proceso bloqueante y el nobloq como en nuestra terminal
+luego tocamos stop y ahi se podrá analizar de una forma más simple.
+
+--------0x---------
+el diagrama de 0x se hace escribiendo "0x src/main.js" y luego utilizamos el autocannon para hacer un test.
+Los resultados dan bien porque es solo la vista de info.
+  
